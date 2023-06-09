@@ -6,12 +6,14 @@ interface Game {
     fun score(): Int
 }
 
-class BowlingGame: Game {
+class BowlingGame : Game {
+    private var score: Int = 0
+
     override fun roll(int: Int) {
-        TODO("Not yet implemented")
+        score += int
     }
 
     override fun score(): Int {
-        TODO("Not yet implemented")
+        return score
     }
 }
