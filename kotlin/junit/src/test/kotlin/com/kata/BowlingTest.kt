@@ -2,7 +2,6 @@ package com.kata
 
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import kotlin.test.assertEquals
 
 internal class BowlingTest {
@@ -38,5 +37,38 @@ internal class BowlingTest {
         val secondRoll = 3
         bowlingGame.roll(secondRoll)
         assertEquals(firstRoll + secondRoll, bowlingGame.score())
+    }
+
+    @Test
+    fun assertNormalFrameDidntTriggerBonus() {
+        val firstRoll = 3
+        bowlingGame.roll(firstRoll)
+        val secondRoll = 3
+        bowlingGame.roll(secondRoll)
+        val thirdRoll = 1
+        bowlingGame.roll(thirdRoll)
+        assertEquals(firstRoll + secondRoll + thirdRoll, bowlingGame.score())
+    }
+
+    @Test
+    fun assertSpareTriggeredBonus() {
+        val firstRoll = 3
+        bowlingGame.roll(firstRoll)
+        val secondRoll = 7
+        bowlingGame.roll(secondRoll)
+        val thirdRoll = 1
+        bowlingGame.roll(thirdRoll)
+        assertEquals(firstRoll + secondRoll + thirdRoll + thirdRoll, bowlingGame.score())
+    }
+
+    @Test
+    fun assertStrikeTriggeredTwoBonuses() {
+        val firstRoll = 10
+        bowlingGame.roll(firstRoll)
+        val secondRoll = 3
+        bowlingGame.roll(secondRoll)
+        val thirdRoll = 3
+        bowlingGame.roll(thirdRoll)
+        assertEquals(firstRoll + secondRoll + secondRoll + thirdRoll + thirdRoll, bowlingGame.score())
     }
 }
