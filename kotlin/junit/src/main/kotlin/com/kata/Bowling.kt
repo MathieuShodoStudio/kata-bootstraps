@@ -1,7 +1,7 @@
 package com.kata
 
 interface Game {
-    fun roll(numberOfPins: Int)
+    fun roll(pins: Int)
 
     fun score(): Int
 }
@@ -10,99 +10,106 @@ private const val MAXIMUM_FRAMES = 10
 
 class BowlingGame : Game {
     private val frames: MutableList<Frame> = ArrayList()
-    private var currentFrame: Frame = BowlingFrame()
-    private var previousFrame: Frame? = null
+    private var currentFrameIndex: Int = 0
+    private var currentRollIndex: Int = 1
 
-    private var bonusesAvailable: Int = 0
+    private val framesEligibleForBonus: MutableMap<Int, MutableList<Frame>> = HashMap()
 
     init {
-        frames.add(currentFrame)
+        for (frameIndex in 1 until MAXIMUM_FRAMES) {
+            frames.add(BowlingFrame(frameIndex))
+        }
+        frames.add(BowlingFinalFrame(MAXIMUM_FRAMES))
     }
 
-    override fun roll(numberOfPins: Int) {
-        assertGameIsOngoing()
-
+    override fun roll(pins: Int) {
         val frame = getCurrentFrame()
 
-        val frameStatus = frame.roll(numberOfPins)
+        val frameStatus = frame.roll(currentRollIndex, pins)
 
-        creditBonusToFrame(frame, numberOfPins)
+        creditBonuses(pins)
 
-        updateBonusesAvailable(frameStatus)
+        updateBonusesAvailable(frame, frameStatus)
+
+        System.err.println("Total score of ${score()} after roll $currentRollIndex during frame ${currentFrameIndex+1}")
+        System.err.println("===========================================")
+
+        currentRollIndex++
     }
 
     override fun score(): Int {
         return frames.stream().mapToInt { frame -> frame.score() }.sum()
     }
 
-    private fun assertGameIsOngoing() {
-        if (currentFrame is BowlingFinalFrame && currentFrame.status().isCompleted) {
-            throw IllegalStateException("Game was completed")
-        }
-    }
-
     private fun getCurrentFrame(): Frame {
-        if (currentFrame.status().isCompleted) {
-            previousFrame = currentFrame
-            currentFrame = if (frames.size + 1 == MAXIMUM_FRAMES) {
-                BowlingFinalFrame()
-            } else {
-                BowlingFrame()
-            }
+        var currentFrame = frames[currentFrameIndex]
+        if (currentFrame.isCompleted()) {
+            if (currentFrame is BowlingFinalFrame) throw IllegalStateException("Game is over")
 
-            frames.add(currentFrame)
+            currentFrameIndex++
+            currentFrame = frames[currentFrameIndex]
         }
 
         return currentFrame
     }
 
-    private fun creditBonusToFrame(frame: Frame, numberOfPins: Int) {
-        if (bonusesAvailable > 0) {
-            val frameToCreditBonus = if (frame is BowlingFinalFrame) {
-                frame
-            } else {
-                previousFrame!!
-            }
-            frameToCreditBonus.bonus(numberOfPins)
-            bonusesAvailable--
+    private fun creditBonuses(pins: Int) {
+        framesEligibleForBonus[currentRollIndex]?.forEach { it.bonus(currentRollIndex, pins) }
+    }
+
+    private fun updateBonusesAvailable(frame: Frame, frameStatus: FrameStatus) {
+        if (FrameStatus.COMPLETED_SPARE == frameStatus) {
+            addBonus(frame, currentRollIndex + 1)
+        }
+        else if (FrameStatus.COMPLETED_STRIKE == frameStatus) {
+            addBonus(frame, currentRollIndex + 1)
+            addBonus(frame, currentRollIndex + 2)
+        }
+        else if (FrameStatus.BONUS_ROLL == frameStatus) {
+            addBonus(frame, currentRollIndex + 1)
         }
     }
 
-    private fun updateBonusesAvailable(frameStatus: FrameStatus) {
-        bonusesAvailable += frameStatus.bonuses
+    private fun addBonus(frame: Frame, frameIndex: Int) {
+        if (!framesEligibleForBonus.containsKey(frameIndex)) {
+            framesEligibleForBonus[frameIndex] = ArrayList()
+        }
+        framesEligibleForBonus[frameIndex]!!.add(frame)
     }
 }
 
-enum class FrameStatus(val isCompleted: Boolean, val bonuses: Int) {
-    NO_ROLL_MADE(false, 0),
-    ROLL_MADE(false, 0),
-    COMPLETED(true, 0),
-    COMPLETED_SPARE(true, 1),
-    COMPLETED_STRIKE(true, 2)
+enum class FrameStatus(val isCompleted: Boolean) {
+    NO_ROLL_MADE(false),
+    ROLL_MADE(false),
+    BONUS_ROLL(false),
+    COMPLETED(true),
+    COMPLETED_SPARE(true),
+    COMPLETED_STRIKE(true)
 }
 
 interface Frame {
-    fun status(): FrameStatus
+    fun isCompleted(): Boolean
 
-    fun roll(numberOfPins: Int): FrameStatus
+    fun roll(rollIndex: Int, pins: Int): FrameStatus
 
-    fun bonus(numberOfPins: Int)
+    fun bonus(rollIndex: Int, pins: Int)
 
     fun score(): Int
 }
 
 private const val MAXIMUM_PINS = 10
 
-open class BowlingFrame : Frame {
+open class BowlingFrame(private val index: Int) : Frame {
     private var score: Int = 0
+    private var bonus: Int = 0
     protected var status = FrameStatus.NO_ROLL_MADE
 
-    override fun status(): FrameStatus = status
+    override fun isCompleted(): Boolean  = status.isCompleted
 
-    override fun roll(numberOfPins: Int): FrameStatus {
-        updateScore(numberOfPins)
+    override fun roll(rollIndex: Int, pins: Int): FrameStatus {
+        updateScore(rollIndex, pins)
 
-        status = if (FrameStatus.NO_ROLL_MADE == status && numberOfPins == MAXIMUM_PINS) {
+        status = if (FrameStatus.NO_ROLL_MADE == status && pins == MAXIMUM_PINS) {
             FrameStatus.COMPLETED_STRIKE
         } else if (FrameStatus.ROLL_MADE == status) {
             if (score == MAXIMUM_PINS) {
@@ -117,30 +124,40 @@ open class BowlingFrame : Frame {
         return status
     }
 
-    override fun bonus(numberOfPins: Int) {
-        updateScore(numberOfPins)
+    override fun bonus(rollIndex: Int, pins: Int) {
+        System.err.println("Bonus of $pins pins on roll $rollIndex for frame $index")
+        bonus += pins
     }
 
-    private fun updateScore(numberOfPins: Int) {
-        score += numberOfPins
+    protected fun updateScore(rollIndex: Int, pins: Int) {
+        System.err.println("Rolled $pins pins on roll $rollIndex during frame $index")
+        score += pins
     }
 
-    override fun score(): Int = score
+    override fun score(): Int = score + bonus
+
+    override fun toString(): String = "index: $index ; score: $score ; bonus: $bonus"
 }
 
 private const val MAXIMUM_ROLLS_FINAL_FRAME = 3
 
-class BowlingFinalFrame : BowlingFrame() {
+class BowlingFinalFrame(index: Int) : BowlingFrame(index) {
     private var rolls : Int = 0
-    override fun roll(numberOfPins: Int): FrameStatus {
+
+    override fun roll(rollIndex: Int, pins: Int): FrameStatus {
         rolls++
 
-        bonus(numberOfPins)
+        if (FrameStatus.BONUS_ROLL != status) {
+            updateScore(rollIndex, pins)
+        }
 
         if (FrameStatus.NO_ROLL_MADE == status) {
-            status = FrameStatus.ROLL_MADE
-        }
-        else if (FrameStatus.ROLL_MADE == status && score() < MAXIMUM_PINS) {
+            status = if (MAXIMUM_PINS == pins) {
+                FrameStatus.BONUS_ROLL
+            } else {
+                FrameStatus.ROLL_MADE
+            }
+        } else if (FrameStatus.ROLL_MADE == status && score() < MAXIMUM_PINS) {
             status = FrameStatus.COMPLETED
         }
         else if (MAXIMUM_ROLLS_FINAL_FRAME == rolls) {

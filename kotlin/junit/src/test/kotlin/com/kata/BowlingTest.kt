@@ -70,7 +70,7 @@ internal class BowlingTest {
         bowlingGame.roll(firstRoll)
         val secondRoll = 3
         bowlingGame.roll(secondRoll)
-        val thirdRoll = 3
+        val thirdRoll = 1
         bowlingGame.roll(thirdRoll)
         assertEquals(firstRoll + secondRoll + secondRoll + thirdRoll + thirdRoll, bowlingGame.score())
     }
@@ -78,7 +78,7 @@ internal class BowlingTest {
     @Test
     fun assertThreeStrikesTriggeredBonuses() {
         playStrikeFrames(3)
-        assertEquals(90, bowlingGame.score())
+        assertEquals(60, bowlingGame.score())
     }
 
     @Test
@@ -156,9 +156,11 @@ internal class BowlingTest {
     @Test
     fun assertPerfectGameHasMaximumScore() {
         playStrikeFrames(10)
+        assertEquals(270, bowlingGame.score())
 
         val bonusFirstRoll = 10
         bowlingGame.roll(bonusFirstRoll)
+        assertEquals(290, bowlingGame.score())
 
         val bonusSecondRoll = 10
         bowlingGame.roll(bonusSecondRoll)
