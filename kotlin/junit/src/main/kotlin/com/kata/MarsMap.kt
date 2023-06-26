@@ -4,13 +4,15 @@ import com.kata.Direction.*
 
 const val MAP_SIZE = 10
 
-class MarsMap {
+class MarsMap(vararg obstacles: Position) {
     private var strategies : Map<Direction, NeighboringStrategy> = listOf(
             NorthNeighboringStrategy(MAP_SIZE),
             EastNeighboringStrategy(MAP_SIZE),
             SouthNeighboringStrategy(MAP_SIZE),
             WestNeighboringStrategy(MAP_SIZE),
     ).associateBy(NeighboringStrategy::supportedDirection)
+
+    private var obstacles : List<Position> = obstacles.toList()
 
     fun neighbor(position: Position, direction: Direction): Position {
         return neighboringStrategy(direction).neighbor(position)

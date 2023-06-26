@@ -23,13 +23,13 @@ internal class MovingForwardTest {
     @MethodSource("moveNominal")
     @ParameterizedTest(name = "when a rover oriented {2} moves forward then it changes position by 1")
     fun nominalMove(startingX: Int, startingY: Int, direction: Direction, movingMode: MovingMode, expectedX: Int, expectedY: Int) {
-        moveRover(startingX, startingY, direction, movingMode, expectedX, expectedY)
+        moveRover(MarsMap(), startingX, startingY, direction, movingMode, expectedX, expectedY)
     }
 
     @MethodSource("moveEdge")
     @ParameterizedTest(name = "when a rover at the edge and oriented {2} moves forward then it goes around to the other edge")
     fun edgeMove(startingX: Int, startingY: Int, direction: Direction, movingMode: MovingMode, expectedX: Int, expectedY: Int) {
-        moveRover(startingX, startingY, direction, movingMode, expectedX, expectedY)
+        moveRover(MarsMap(), startingX, startingY, direction, movingMode, expectedX, expectedY)
     }
 
     companion object {
@@ -54,23 +54,23 @@ internal class MovingForwardTest {
 internal class TurningTest {
     @MethodSource("turn")
     @ParameterizedTest(name = "when a rover oriented {2} turns {3} then it becomes oriented {4}")
-    fun turn(x: Int, y: Int, startingDirection: Direction, rotation: Rotation, expectedDirection: Direction) {
-        val rover = Rover(Position(x, y), startingDirection)
+    fun turn(startingDirection: Direction, rotation: Rotation, expectedDirection: Direction) {
+        val rover = Rover(Position(0, 0), startingDirection)
         rover.turn(rotation)
-        assert(rover).atPosition(x, y).isOriented(expectedDirection)
+        assert(rover).atPosition(0, 0).isOriented(expectedDirection)
     }
 
     companion object {
         @JvmStatic
         fun turn() = listOf(
-                Arguments.of(0, 0, North, Clockwise, East),
-                Arguments.of(0, 0, East, Clockwise, South),
-                Arguments.of(0, 0, South, Clockwise, West),
-                Arguments.of(0, 0, West, Clockwise, North),
-                Arguments.of(0, 0, North, CounterClockwise, West),
-                Arguments.of(0, 0, West, CounterClockwise, South),
-                Arguments.of(0, 0, South, CounterClockwise, East),
-                Arguments.of(0, 0, East, CounterClockwise, North),
+                Arguments.of(North, Clockwise, East),
+                Arguments.of(East, Clockwise, South),
+                Arguments.of(South, Clockwise, West),
+                Arguments.of(West, Clockwise, North),
+                Arguments.of(North, CounterClockwise, West),
+                Arguments.of(West, CounterClockwise, South),
+                Arguments.of(South, CounterClockwise, East),
+                Arguments.of(East, CounterClockwise, North),
         )
     }
 }
@@ -79,13 +79,13 @@ internal class MovingBackwardsTest {
     @MethodSource("moveNominal")
     @ParameterizedTest(name = "when a rover oriented {2} moves backwards then it changes position by 1")
     fun nominalMove(startingX: Int, startingY: Int, direction: Direction, movingMode: MovingMode, expectedX: Int, expectedY: Int) {
-        moveRover(startingX, startingY, direction, movingMode, expectedX, expectedY)
+        moveRover(MarsMap(), startingX, startingY, direction, movingMode, expectedX, expectedY)
     }
 
     @MethodSource("moveEdge")
     @ParameterizedTest(name = "when a rover at the edge and oriented {2} moves backwards then it goes around to the other edge")
     fun edgeMove(startingX: Int, startingY: Int, direction: Direction, movingMode: MovingMode, expectedX: Int, expectedY: Int) {
-        moveRover(startingX, startingY, direction, movingMode, expectedX, expectedY)
+        moveRover(MarsMap(), startingX, startingY, direction, movingMode, expectedX, expectedY)
     }
 
     companion object {
@@ -110,6 +110,8 @@ internal class MovingBackwardsTest {
 internal class ObstacleDetectionTest {
     @Test
     fun `when a rover detects an obstacle it doesn't move and reports the location`() {
-        TODO("Not yet implemented")
+        val (obstacleX, obstacleY) = intArrayOf(0, 1)
+        val mapWithObstacle = MarsMap(Position(obstacleX, obstacleY))
+        detectObstacle(mapWithObstacle, 0, 0, North, Forward, obstacleX, obstacleY)
     }
 }
