@@ -3,9 +3,13 @@ package com.kata
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 
+const val EDGE_INDEX = 9
+
+val marsMap = MarsMap()
+
 fun assert(rover: Rover): RoverMatcher = RoverMatcher(rover)
 
-class RoverMatcher(private val rover: Rover) {
+open class RoverMatcher(protected val rover: Rover) {
     fun atPosition(x: Int, y: Int): RoverMatcher {
         assertThat(rover.position()).isEqualTo(Position(x, y))
         return this
@@ -17,18 +21,144 @@ class RoverMatcher(private val rover: Rover) {
     }
 }
 
-fun moveRover(marsMap: MarsMap, startingX: Int, startingY: Int, direction: Direction, movingMode: MovingMode, expectedX: Int, expectedY: Int) {
-    val rover = Rover(Position(startingX, startingY), direction)
-    rover.move(marsMap, movingMode)
-    assert(rover).atPosition(expectedX, expectedY).isOriented(direction)
+fun rover(): RoverBuilder = RoverBuilderImpl()
+
+interface RoverBuilder {
+    fun facing(direction: Direction): RoverBuilder
+    fun on(map: MarsMap): RoverBuilder
+    fun at(x: Int, y: Int): RoverBuilder
+    fun moves(movingMode: MovingMode): RoverMovementMatcher
+    fun turns(rotation: Rotation): RoverTurnMatcher
 }
 
-fun detectObstacle(marsMap: MarsMap, roverX: Int, roverY: Int, direction: Direction, movingMode: MovingMode, obstacleX: Int, obstacleY: Int) {
-    val rover = Rover(Position(roverX, roverY), direction)
+class RoverBuilderImpl : RoverBuilder {
+    var startingY = 0
+    var startingX = 0
+    lateinit var startingDirection: Direction
+    lateinit var map: MarsMap
 
-    assertThatThrownBy { rover.move(marsMap, movingMode) }
-            .isInstanceOf(ObstacleDetectedException::class.java)
-            .hasFieldOrPropertyWithValue(ObstacleDetectedException::position.name, Position(obstacleX, obstacleY))
+    override fun at(x: Int, y: Int): RoverBuilder {
+        startingX = x
+        startingY = y
+        return this
+    }
 
-    assert(rover).atPosition(roverX, roverY).isOriented(direction)
+    override fun facing(direction: Direction): RoverBuilder {
+        startingDirection = direction
+        return this
+    }
+
+    override fun on(map: MarsMap): RoverBuilder {
+        this.map = map
+        return this
+    }
+
+    override fun moves(movingMode: MovingMode): RoverMovementMatcher {
+        return RoverMovementMatcher(this, movingMode)
+    }
+
+    override fun turns(rotation: Rotation): RoverTurnMatcher {
+        return RoverTurnMatcher(this, rotation)
+    }
+
+    fun build(): Rover = Rover(Position(startingX, startingY), startingDirection)
+}
+
+class RoverMovementMatcher(private val builder: RoverBuilderImpl, private val movingMode: MovingMode) {
+    private val rover: Rover = builder.build()
+
+    fun arrivedAt(expectedX: Int, expectedY: Int) {
+        rover.move(builder.map, movingMode)
+        assert(rover).atPosition(expectedX, expectedY).isOriented(builder.startingDirection)
+    }
+
+    fun detectedObstacleAt(obstacleX: Int, obstacleY: Int) {
+        assertThatThrownBy { rover.move(builder.map, movingMode) }
+                .isInstanceOf(ObstacleDetectedException::class.java)
+                .hasFieldOrPropertyWithValue(ObstacleDetectedException::position.name, Position(obstacleX, obstacleY))
+
+        assert(rover).atPosition(builder.startingX, builder.startingY).isOriented(builder.startingDirection)
+    }
+}
+
+class RoverTurnMatcher(private val builder: RoverBuilderImpl, private val rotation: Rotation) {
+    private val rover: Rover = builder.build()
+
+    fun facedTowards(expectedDirection: Direction) {
+        rover.turn(rotation)
+        assert(rover).atPosition(builder.startingX, builder.startingY).isOriented(expectedDirection)
+    }
+}
+
+fun terminal(): TerminalBuilder = TerminalBuilderImpl()
+
+interface TerminalBuilder {
+    fun startingPoint(landingX: Int, landingY: Int): TerminalBuilder
+    fun direction(landingDirection: Direction): TerminalBuilder
+    fun on(map: MarsMap): TerminalBuilder
+    fun lands(): TerminalLandingMatcher
+}
+
+class TerminalBuilderImpl : TerminalBuilder {
+    var landingY = 0
+    var landingX = 0
+    lateinit var landingDirection: Direction
+    lateinit var map: MarsMap
+    override fun startingPoint(landingX: Int, landingY: Int): TerminalBuilder {
+        this.landingX = landingX
+        this.landingY = landingY
+        return this
+    }
+
+    override fun direction(landingDirection: Direction): TerminalBuilder {
+        this.landingDirection = landingDirection
+        return this
+    }
+
+    override fun on(map: MarsMap): TerminalBuilder {
+        this.map = map
+        return this
+    }
+
+    override fun lands(): TerminalLandingMatcher = TerminalLandingMatcher(this)
+
+    fun build(): CommandTerminal = CommandTerminal()
+}
+
+class TerminalLandingMatcher(private val builder: TerminalBuilderImpl) {
+    private val terminal: CommandTerminal = builder.build()
+
+    fun landed(): CommandsMatcher {
+        val rover = land()
+        assert(rover).atPosition(builder.landingX, builder.landingY).isOriented(builder.landingDirection)
+        return CommandsMatcher(terminal, rover, builder.map)
+    }
+
+    fun abortedLanding() {
+        assertThatThrownBy { land() }.isInstanceOf(ObstacleDetectedException::class.java)
+    }
+
+    private fun land(): Rover =
+            terminal.land(builder.map, Position(builder.landingX, builder.landingY), builder.landingDirection)
+}
+
+class CommandsMatcher(private val terminal: CommandTerminal, rover: Rover, private val map: MarsMap) : RoverMatcher(rover) {
+    private var report: ObstacleReport? = null
+
+    fun commands(vararg commands: Command): CommandsMatcher {
+        report = terminal.input(rover, map, *commands)
+        return this
+    }
+
+    fun reportedSuccess(): RoverMatcher {
+        assertThat(report).isNull()
+        return this
+    }
+
+    fun reportedObstacleAt(obstacleX: Int, obstacleY: Int): RoverMatcher {
+        assertThat(report)
+                .isNotNull()
+                .hasFieldOrPropertyWithValue(ObstacleReport::obstacle.name, Position(obstacleX, obstacleY))
+        return this
+    }
 }

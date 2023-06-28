@@ -7,7 +7,7 @@ import com.kata.Command.Right
 import com.kata.Rotation.Clockwise
 import com.kata.Rotation.CounterClockwise
 
-class CommandPanel {
+class CommandTerminal {
     fun land(marsMap: MarsMap, position: Position, direction: Direction): Rover {
         if (marsMap.isObstacle(position)) throw ObstacleDetectedException(position)
         return Rover(position, direction)

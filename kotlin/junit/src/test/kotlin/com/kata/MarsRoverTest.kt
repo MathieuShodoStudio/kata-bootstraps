@@ -17,21 +17,21 @@ internal class RoverCreationTest {
     }
 }
 
-private const val EDGE_INDEX = 9
-
-private val marsMap = MarsMap()
-
 internal class MovingForwardTest {
     @ParameterizedTest(name = "when a rover oriented {2} moves forward then it changes position by 1")
     @MethodSource("moveNominal")
     fun nominalMove(startingX: Int, startingY: Int, direction: Direction, movingMode: MovingMode, expectedX: Int, expectedY: Int) {
-        moveRover(marsMap, startingX, startingY, direction, movingMode, expectedX, expectedY)
+        rover().at(startingX, startingY).facing(direction).on(marsMap)
+                .moves(movingMode)
+                .arrivedAt(expectedX, expectedY)
     }
 
     @ParameterizedTest(name = "when a rover at the edge and oriented {2} moves forward then it goes around to the other edge")
     @MethodSource("moveEdge")
     fun edgeMove(startingX: Int, startingY: Int, direction: Direction, movingMode: MovingMode, expectedX: Int, expectedY: Int) {
-        moveRover(marsMap, startingX, startingY, direction, movingMode, expectedX, expectedY)
+        rover().at(startingX, startingY).facing(direction).on(marsMap)
+                .moves(movingMode)
+                .arrivedAt(expectedX, expectedY)
     }
 
     companion object {
@@ -57,9 +57,9 @@ internal class TurningTest {
     @ParameterizedTest(name = "when a rover oriented {2} turns {3} then it becomes oriented {4}")
     @MethodSource("turn")
     fun turn(startingDirection: Direction, rotation: Rotation, expectedDirection: Direction) {
-        val rover = Rover(Position(0, 0), startingDirection)
-        rover.turn(rotation)
-        assert(rover).atPosition(0, 0).isOriented(expectedDirection)
+        rover().at(0, 0).facing(startingDirection).on(marsMap)
+                .turns(rotation)
+                .facedTowards(expectedDirection)
     }
 
     companion object {
@@ -81,13 +81,17 @@ internal class MovingBackwardsTest {
     @ParameterizedTest(name = "when a rover oriented {2} moves backwards then it changes position by 1")
     @MethodSource("moveNominal")
     fun nominalMove(startingX: Int, startingY: Int, direction: Direction, movingMode: MovingMode, expectedX: Int, expectedY: Int) {
-        moveRover(marsMap, startingX, startingY, direction, movingMode, expectedX, expectedY)
+        rover().at(startingX, startingY).facing(direction).on(marsMap)
+                .moves(movingMode)
+                .arrivedAt(expectedX, expectedY)
     }
 
     @ParameterizedTest(name = "when a rover at the edge and oriented {2} moves backwards then it goes around to the other edge")
     @MethodSource("moveEdge")
     fun edgeMove(startingX: Int, startingY: Int, direction: Direction, movingMode: MovingMode, expectedX: Int, expectedY: Int) {
-        moveRover(marsMap, startingX, startingY, direction, movingMode, expectedX, expectedY)
+        rover().at(startingX, startingY).facing(direction).on(marsMap)
+                .moves(movingMode)
+                .arrivedAt(expectedX, expectedY)
     }
 
     companion object {
@@ -114,6 +118,9 @@ internal class ObstacleDetectionTest {
     fun `when a rover detects an obstacle it doesn't move and reports the location`() {
         val (obstacleX, obstacleY) = intArrayOf(0, 1)
         val mapWithObstacle = MarsMap(Position(obstacleX, obstacleY))
-        detectObstacle(mapWithObstacle, 0, 0, North, Forward, obstacleX, obstacleY)
+
+        rover().at(0, 0).facing(North).on(mapWithObstacle)
+                .moves(Forward)
+                .detectedObstacleAt(obstacleX, obstacleY)
     }
 }
