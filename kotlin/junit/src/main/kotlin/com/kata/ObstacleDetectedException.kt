@@ -1,3 +1,3 @@
 package com.kata
 
-class ObstacleDetectedException(val position: Position) : Throwable()
+class ObstacleDetectedException(val position: Position) : Exception()

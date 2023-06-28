@@ -1,6 +1,6 @@
 package com.kata
 
-import com.kata.MovingMode.*
+import com.kata.MovingMode.Backward
 
 class Rover(private var position: Position, private var direction: Direction) {
     private val compass = Compass()
@@ -8,8 +8,9 @@ class Rover(private var position: Position, private var direction: Direction) {
     fun direction(): Direction = direction
 
     fun move(map: MarsMap, movingMode: MovingMode) {
-        val movingDirection = if (movingMode == Backwards) compass.opposite(direction) else direction
+        val movingDirection = if (movingMode == Backward) compass.opposite(direction) else direction
         val neighborPosition = map.neighbor(position, movingDirection)
+        if (map.isObstacle(neighborPosition)) throw ObstacleDetectedException(neighborPosition)
         moveTo(neighborPosition)
     }
 
@@ -22,4 +23,3 @@ class Rover(private var position: Position, private var direction: Direction) {
     }
 }
 
-enum class MovingMode { Forward, Backwards }

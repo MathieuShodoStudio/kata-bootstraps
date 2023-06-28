@@ -18,6 +18,8 @@ class MarsMap(vararg obstacles: Position) {
         return neighboringStrategy(direction).neighbor(position)
     }
 
+    fun isObstacle(position: Position): Boolean = obstacles.any { it == position }
+
     private fun neighboringStrategy(direction: Direction) = strategies[direction]!!
 }
 

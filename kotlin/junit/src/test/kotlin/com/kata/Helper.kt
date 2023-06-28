@@ -1,7 +1,6 @@
 package com.kata
 
 import org.assertj.core.api.Assertions.assertThat
-import org.assertj.core.api.Assertions.assertThatExceptionOfType
 import org.assertj.core.api.Assertions.assertThatThrownBy
 
 fun assert(rover: Rover): RoverMatcher = RoverMatcher(rover)
