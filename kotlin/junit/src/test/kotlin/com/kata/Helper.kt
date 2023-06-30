@@ -162,3 +162,46 @@ class CommandsMatcher(private val terminal: CommandTerminal, rover: Rover, priva
         return this
     }
 }
+
+fun mars(): MarsBuilder = MarsBuilderImpl()
+
+interface MarsBuilder {
+    fun withSize(size: Int): MarsBuilder
+    fun withObstacles(vararg obstacles: Position): MarsBuilder
+    fun withRover(position: Position, direction: Direction): MarsBuilder
+    fun print(): MarsPrintMatcher
+}
+
+class MarsBuilderImpl : MarsBuilder {
+    private var size = 0
+    private lateinit var map: MarsMap
+    private lateinit var rover: Rover
+
+    override fun withSize(size: Int): MarsBuilder {
+        this.size = size
+        return this
+    }
+
+    override fun withObstacles(vararg obstacles: Position): MarsBuilder {
+        this.map = MarsMap(size, *obstacles)
+        return this
+    }
+
+    override fun withRover(position: Position, direction: Direction): MarsBuilder {
+        this.rover = Rover(position, direction)
+        return this
+    }
+
+    override fun print(): MarsPrintMatcher {
+        return MarsPrintMatcher(map, rover)
+    }
+}
+
+class MarsPrintMatcher(private val map: MarsMap, private val rover: Rover) {
+    private val printer = MarsPrinter()
+
+    fun isEqualTo(expectedPrint: String) {
+        val print = printer.print(map, rover)
+        assertThat(print).isEqualTo(expectedPrint)
+    }
+}

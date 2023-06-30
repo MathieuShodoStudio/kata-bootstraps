@@ -2,15 +2,20 @@ package com.kata
 
 import com.kata.Direction.*
 
-const val MAP_SIZE = 10
+const val DEFAULT_MAP_SIZE = 10
 
 class MarsMap(vararg obstacles: Position) {
+    var size = DEFAULT_MAP_SIZE
     private var strategies : Map<Direction, NeighboringStrategy> = listOf(
-            NorthNeighboringStrategy(MAP_SIZE),
-            EastNeighboringStrategy(MAP_SIZE),
-            SouthNeighboringStrategy(MAP_SIZE),
-            WestNeighboringStrategy(MAP_SIZE),
+            NorthNeighboringStrategy(size),
+            EastNeighboringStrategy(size),
+            SouthNeighboringStrategy(size),
+            WestNeighboringStrategy(size),
     ).associateBy(NeighboringStrategy::supportedDirection)
+
+    constructor(size: Int, vararg obstacles: Position) : this(*obstacles) {
+        this.size = size
+    }
 
     private var obstacles : List<Position> = obstacles.toList()
 
